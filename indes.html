@@ -1,32 +1,81 @@
+
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>歌曲搜尋平台</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Quicksand', 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #fce4ec 0%, #e3f2fd 100%);
             min-height: 100vh;
+            display: flex;
+            justify-content: center;
         }
         .song-card {
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            border-width: 2px;
+        }
+        .song-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
         .song-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
+        .song-card:hover::before {
+            opacity: 1;
+        }
+        .search-input {
+            transition: all 0.3s ease;
+            border-radius: 20px;
+            border-width: 2px;
+        }
         .search-input:focus {
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+            transform: translateY(-1px);
         }
         .filter-btn.active {
-            background-color: #4f46e5;
+            background-color: #8b5cf6;
             color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
         }
         .category-btn {
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        .category-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #8b5cf6;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+        .category-btn:hover::after {
+            transform: scaleX(1);
         }
         .category-btn.active {
             background-color: #8b5cf6;
@@ -34,8 +83,11 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
         }
+        .category-btn.active::after {
+            transform: scaleX(0);
+        }
         .loader {
-            border-top-color: #4f46e5;
+            border-top-color: #8b5cf6;
             animation: spinner 0.6s linear infinite;
         }
         @keyframes spinner {
@@ -43,41 +95,65 @@
         }
         .language-tag {
             white-space: nowrap;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+        }
+        .language-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .category-tag {
             display: inline-block;
             margin-right: 0.25rem;
             margin-bottom: 0.25rem;
             cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+        }
+        .category-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .active-filters {
             transition: all 0.3s ease;
             max-height: 0;
             overflow: hidden;
+            opacity: 0;
+            border-radius: 16px;
         }
         .active-filters.show {
             max-height: 100px;
             margin-bottom: 1rem;
+            opacity: 1;
         }
         .copy-btn {
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            width: 40px;  /* Increased size */
+            height: 40px; /* Increased size */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer; /* Add hand cursor */
         }
-        .copy-btn:hover {
-            transform: translateY(-2px);
+        .copy-btn svg {
+            width: 20px;  /* Increased icon size */
+            height: 20px; /* Increased icon size */
+        }
+        .song-card:hover .copy-btn {
             animation: bounce 0.5s ease;
         }
         @keyframes bounce {
-            0%, 100% { transform: translateY(-2px); }
-            50% { transform: translateY(-6px); }
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
         }
         .copy-tooltip {
             position: absolute;
             top: -30px;
             right: 0;
-            background-color: #4f46e5;
+            background-color: #8b5cf6;
             color: white;
             padding: 4px 8px;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 12px;
             opacity: 0;
             transition: opacity 0.3s ease;
@@ -85,6 +161,13 @@
         }
         .copy-tooltip.show {
             opacity: 1;
+            animation: fadeInOut 2s ease forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(5px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
         }
         .copy-tooltip:after {
             content: '';
@@ -93,7 +176,7 @@
             right: 10px;
             border-width: 5px;
             border-style: solid;
-            border-color: #4f46e5 transparent transparent transparent;
+            border-color: #8b5cf6 transparent transparent transparent;
         }
         .category-count {
             display: inline-flex;
@@ -108,6 +191,7 @@
             font-size: 12px;
             font-weight: 600;
             margin-left: 6px;
+            transition: all 0.3s ease;
         }
         .category-btn.active .category-count {
             background-color: rgba(255, 255, 255, 0.3);
@@ -117,64 +201,230 @@
             cursor: pointer;
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
-            border-radius: 9999px;
+            border-radius: 12px;
             display: inline-flex;
             align-items: center;
             margin-right: 0.5rem;
             margin-bottom: 0.25rem;
+            transition: all 0.3s ease;
+        }
+        .filter-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .clear-btn {
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            cursor: pointer; /* Add hand cursor */
+        }
+        .clear-btn.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .stats-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+        }
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        .stats-card:hover::before {
+            opacity: 1;
+        }
+        .pulse-heart {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .main-container {
+            animation: fadeInUp 0.8s ease-out;
+            max-width: 1200px;
+            width: 100%;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .header-text {
+            background: linear-gradient(90deg, #8b5cf6, #6d28d9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 8s ease infinite;
+            background-size: 200% 200%;
+            text-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+            text-align: center; /* Ensure text is centered */
+            margin: 0 auto; /* Center the element itself */
+            width: 100%; /* Take full width */
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        /* Hidden textarea for clipboard operations */
+        #clipboard-textarea {
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+        }
+        /* Toast notification */
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #8b5cf6;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        /* Cute elements */
+        .cute-icon {
+            display: inline-block;
+            animation: wiggle 2s ease-in-out infinite;
+        }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0); }
+            25% { transform: rotate(10deg); }
+            75% { transform: rotate(-10deg); }
+        }
+        .search-container {
+            position: relative;
+        }
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8b5cf6;
+            transition: all 0.3s ease;
+        }
+        .search-input:focus + .search-icon {
+            transform: translateY(-50%) scale(1.2);
+        }
+        .card-container {
+            margin-top: -8px;
+        }
+        /* Center the header content */
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        /* Copy button hover effect */
+        .copy-btn:hover {
+            background-color: #a78bfa !important; /* Darker purple on hover */
+            color: white !important;
+            transform: scale(1.1);
+        }
+        /* Copy button active effect */
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+        /* Add cursor pointer to all interactive elements */
+        button, .filter-btn, .category-btn, .filter-tag, .category-tag {
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div class="container mx-auto px-4 py-8">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-indigo-800 mb-2">我的歌曲庫</h1>
-            <p class="text-gray-600 text-lg">搜尋、瀏覽我會唱的歌曲</p>
+    <div class="container mx-auto px-4 py-8 main-container">
+        <header class="text-center mb-8">
+            <div class="header-content">
+                <h1 class="text-4xl font-bold mb-2 header-text">我的歌曲庫 <span class="cute-icon">🎵</span></h1>
+                <p class="text-gray-600 text-lg text-center">總有那麼一首歌，會觸動你<span class="pulse-heart text-purple-500">💖</span></p>
+            </div>
         </header>
 
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 backdrop-blur-md bg-opacity-90 border-2 border-purple-100">
             <!-- Search bar - moved to the top -->
-            <div class="mb-6">
-                <div class="relative">
-                    <input 
-                        type="text" 
-                        id="search" 
-                        placeholder="搜尋歌曲、歌手或語言..." 
-                        class="search-input w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none text-gray-700"
-                    >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute right-3 top-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="mb-6 search-container">
+                <input 
+                    type="text" 
+                    id="search" 
+                    placeholder="搜尋歌曲、歌手或語言..." 
+                    class="search-input w-full px-5 py-3 border-purple-200 focus:border-purple-400 focus:outline-none text-gray-700"
+                >
+                <div class="search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
             </div>
 
             <!-- Category filters -->
-            <div class="mb-6">
+            <div class="mb-3">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-lg font-semibold text-gray-700">分類</h3>
+                    <h3 class="text-lg font-semibold text-gray-700 flex items-center">
+                        <span class="cute-icon mr-1">🏷️</span> 分類
+                    </h3>
                 </div>
                 <div class="flex gap-2 flex-wrap" id="category-filters">
                     <!-- Category filters will be dynamically added here -->
                 </div>
                 
                 <!-- Active filters display with clear button moved to the left -->
-                <div class="flex items-center mt-3">
-                    <button id="clear-categories" class="text-sm text-purple-600 hover:text-purple-800 font-medium mr-2 px-3 py-1 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">清除所有</button>
-                    <div id="active-filters" class="active-filters flex-grow px-3 py-2 bg-purple-50 rounded-lg">
-                        <div class="flex flex-wrap gap-1" id="active-filters-list">
+                <div class="flex items-center justify-center mt-3">
+                    <button id="clear-categories" class="clear-btn text-sm text-purple-600 hover:text-purple-800 font-medium mr-2 px-3 py-1 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            清除所有
+                        </span>
+                    </button>
+                    <div id="active-filters" class="active-filters flex-grow px-3 py-2 bg-purple-50 rounded-lg text-center">
+                        <div class="flex flex-wrap gap-1 justify-center" id="active-filters-list">
                             <!-- Active filters will be shown here -->
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="flex flex-col md:flex-row md:items-center gap-4 mb-6">
-                <div class="flex gap-2 flex-wrap" id="language-filters">
+            <div class="flex flex-col md:flex-row md:items-center gap-4 mb-3 justify-center">
+                <div class="flex gap-2 flex-wrap justify-center" id="language-filters">
                     <!-- Language filters will be dynamically added here -->
                 </div>
             </div>
 
-            <div class="text-gray-600 mb-4">
+            <div class="text-gray-600 mb-3 flex items-center justify-center">
+                <span class="cute-icon mr-1">🎧</span>
                 <span id="result-count" class="font-medium">0</span> 首歌曲
             </div>
 
@@ -182,28 +432,39 @@
                 <div class="loader h-10 w-10 rounded-full border-4 border-gray-200"></div>
             </div>
 
-            <div id="songs-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden">
+            <div id="songs-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden card-container">
                 <!-- Songs will be populated here -->
             </div>
 
             <div id="no-results" class="text-center py-10 hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <div class="cute-icon text-4xl mb-2">😢</div>
                 <p class="text-gray-600 text-lg">沒有找到符合的歌曲</p>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6">
-            <h2 class="text-2xl font-bold text-indigo-800 mb-4">統計資訊</h2>
+        <div class="bg-white rounded-2xl shadow-lg p-6 backdrop-blur-md bg-opacity-90 border-2 border-purple-100">
+            <h2 class="text-2xl font-bold mb-4 header-text flex items-center justify-center">
+                <span class="cute-icon mr-2">📊</span> 統計資訊
+            </h2>
             <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-indigo-50 rounded-lg p-4 text-center">
-                    <div class="text-3xl font-bold text-indigo-600" id="total-count">0</div>
+                <div class="stats-card bg-purple-50 rounded-lg p-4 text-center border-2 border-purple-100">
+                    <div class="text-3xl font-bold text-purple-600" id="total-count">0</div>
                     <div class="text-gray-600">總歌曲數</div>
                 </div>
                 <!-- Additional stats will be added dynamically -->
             </div>
         </div>
+    </div>
+
+    <!-- Hidden textarea for clipboard operations -->
+    <textarea id="clipboard-textarea" aria-hidden="true"></textarea>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast-notification">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span id="toast-message">已複製到剪貼簿！</span>
     </div>
 
     <script>
@@ -220,6 +481,9 @@
             const clearCategoriesBtn = document.getElementById('clear-categories');
             const statsContainer = document.getElementById('stats-container');
             const totalCountEl = document.getElementById('total-count');
+            const clipboardTextarea = document.getElementById('clipboard-textarea');
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
             
             let allSongs = [];
             let currentLanguageFilter = 'all';
@@ -301,6 +565,9 @@
                     
                     // Initial render
                     renderSongs(allSongs);
+                    
+                    // Update clear button visibility
+                    updateClearButtonVisibility();
                 } catch (error) {
                     console.error('Error processing sheet data:', error);
                     showFetchError();
@@ -315,12 +582,10 @@
                 songsContainer.classList.add('hidden');
                 noResults.classList.remove('hidden');
                 noResults.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-red-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
+                    <div class="cute-icon text-5xl mb-4">🙈</div>
                     <p class="text-gray-600 text-lg">無法獲取歌曲數據</p>
                     <p class="text-gray-500 mt-2">請確保Google Sheet格式正確，並且可以公開訪問</p>
-                    <button id="retry-btn" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">重試</button>
+                    <button id="retry-btn" class="mt-4 px-6 py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors shadow-md">重試</button>
                 `;
                 
                 // Add retry functionality
@@ -334,7 +599,7 @@
                 // Add a filter button for each language
                 Array.from(languages).sort().forEach(language => {
                     const button = document.createElement('button');
-                    button.className = 'filter-btn px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium';
+                    button.className = 'filter-btn px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-all border-2 border-transparent hover:border-purple-200';
                     button.dataset.filter = language;
                     button.textContent = language;
                     
@@ -361,7 +626,7 @@
                 // Add a filter button for each category
                 sortedCategories.forEach(category => {
                     const button = document.createElement('button');
-                    button.className = 'category-btn px-4 py-2 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium flex items-center';
+                    button.className = 'category-btn px-4 py-2 rounded-full bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium flex items-center transition-all border-2 border-transparent hover:border-purple-300';
                     button.dataset.category = category;
                     
                     // Add category name and count
@@ -386,6 +651,9 @@
                         // Update active filters display
                         updateActiveFilters();
                         
+                        // Update clear button visibility
+                        updateClearButtonVisibility();
+                        
                         // Filter songs
                         filterSongs();
                     });
@@ -398,6 +666,7 @@
                     selectedCategories.clear();
                     document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
                     updateActiveFilters();
+                    updateClearButtonVisibility();
                     filterSongs();
                 });
             }
@@ -436,11 +705,20 @@
                         }
                         
                         updateActiveFilters();
+                        updateClearButtonVisibility();
                         filterSongs();
                     });
                     
                     activeFiltersList.appendChild(chip);
                 });
+            }
+
+            function updateClearButtonVisibility() {
+                if (selectedCategories.size > 0) {
+                    clearCategoriesBtn.classList.add('show');
+                } else {
+                    clearCategoriesBtn.classList.remove('show');
+                }
             }
 
             // Search functionality
@@ -512,6 +790,71 @@
                 });
             }
 
+            // Improved copy to clipboard function that works in all browsers
+            function copyToClipboard(text) {
+                return new Promise((resolve, reject) => {
+                    // First try the modern clipboard API
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(text)
+                            .then(resolve)
+                            .catch(() => {
+                                // Fallback to the textarea method
+                                clipboardFallback(text, resolve, reject);
+                            });
+                    } else {
+                        // Use the textarea method for non-secure contexts or older browsers
+                        clipboardFallback(text, resolve, reject);
+                    }
+                });
+            }
+
+            function clipboardFallback(text, resolve, reject) {
+                try {
+                    // Set the textarea value to the text we want to copy
+                    clipboardTextarea.value = text;
+                    
+                    // Make the textarea visible but not intrusive
+                    clipboardTextarea.style.position = 'fixed';
+                    clipboardTextarea.style.top = '0';
+                    clipboardTextarea.style.left = '0';
+                    clipboardTextarea.style.width = '2em';
+                    clipboardTextarea.style.height = '2em';
+                    clipboardTextarea.style.opacity = '0';
+                    clipboardTextarea.style.zIndex = '-1';
+                    
+                    // Show the textarea
+                    clipboardTextarea.style.display = 'block';
+                    
+                    // Select the text
+                    clipboardTextarea.select();
+                    clipboardTextarea.setSelectionRange(0, 99999); // For mobile devices
+                    
+                    // Execute copy command
+                    const successful = document.execCommand('copy');
+                    
+                    // Hide the textarea again
+                    clipboardTextarea.style.display = 'none';
+                    
+                    if (successful) {
+                        resolve();
+                    } else {
+                        reject(new Error('Copy command was unsuccessful'));
+                    }
+                } catch (err) {
+                    reject(err);
+                }
+            }
+
+            // Show toast notification
+            function showToast(message) {
+                toastMessage.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+
             function renderSongs(songs) {
                 songsContainer.innerHTML = '';
                 resultCount.textContent = songs.length;
@@ -523,18 +866,19 @@
                     noResults.classList.add('hidden');
                     songsContainer.classList.remove('hidden');
                     
-                    songs.forEach(song => {
+                    songs.forEach((song, index) => {
                         const songCard = document.createElement('div');
-                        songCard.className = 'song-card bg-white rounded-lg shadow p-4 border-l-4 hover:border-indigo-500 relative';
+                        songCard.className = 'song-card bg-white shadow-md p-4 border-2 hover:border-purple-400 relative';
+                        songCard.style.animationDelay = `${index * 0.05}s`;
                         
                         // Set border color based on language
                         const borderColor = getLanguageColor(song.language);
                         songCard.classList.add(borderColor);
                         
-                        // Create category tags HTML
+                        // Create category tags HTML - more compact layout
                         let categoryTagsHtml = '';
                         if (song.categories && song.categories.length > 0) {
-                            categoryTagsHtml = '<div class="mt-2">';
+                            categoryTagsHtml = '<div class="mt-2 flex flex-wrap">';
                             song.categories.forEach(cat => {
                                 if (cat) {
                                     // Highlight selected categories
@@ -544,34 +888,38 @@
                                         'bg-purple-100 text-purple-800';
                                     
                                     categoryTagsHtml += `
-                                        <span class="category-tag px-2 py-1 text-xs rounded-full ${tagClass}" data-category="${cat}">${cat}</span>
+                                        <span class="category-tag px-2 py-0.5 text-xs rounded-full ${tagClass} mr-1 mb-1" data-category="${cat}">${cat}</span>
                                     `;
                                 }
                             });
                             categoryTagsHtml += '</div>';
                         }
                         
-                        // Create cute copy button
+                        // Create larger copy button - always visible
                         const copyButtonHtml = `
                             <div class="absolute top-3 right-3">
-                                <button class="copy-btn p-2 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-full focus:outline-none shadow-md" data-title="${song.title || ''}" data-artist="${song.artist || ''}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <button class="copy-btn p-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full focus:outline-none shadow-md" data-title="${song.title || ''}" data-artist="${song.artist || ''}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                                         <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                                     </svg>
-                                    <span class="copy-tooltip">已複製!</span>
                                 </button>
                             </div>
                         `;
                         
+                        // More cute layout with emojis and better spacing
                         songCard.innerHTML = `
-                            <h3 class="text-lg font-bold text-gray-800 pr-10">${song.title || ''}</h3>
-                            <div class="flex justify-between items-center mt-2">
-                                <p class="text-gray-600">${song.artist || ''}</p>
-                                ${song.language ? `<span class="language-tag px-2 py-1 text-xs rounded-full ${getLanguageClass(song.language)}">${song.language}</span>` : ''}
+                            <h3 class="text-base font-bold text-gray-800 pr-12 truncate">
+                                <span class="cute-icon inline-block mr-1">🎵</span> ${song.title || ''}
+                            </h3>
+                            <div class="flex justify-between items-center mt-1">
+                                <p class="text-sm text-gray-600 truncate max-w-[70%]">
+                                    <span class="cute-icon inline-block mr-1">🎤</span> ${song.artist || ''}
+                                </p>
+                                ${song.language ? `<span class="language-tag px-2 py-0.5 text-xs rounded-full ${getLanguageClass(song.language)}">${song.language}</span>` : ''}
                             </div>
                             ${categoryTagsHtml}
-                            ${song.notes ? `<p class="mt-2 text-sm text-gray-500"><span class="font-medium">備註:</span> ${song.notes}</p>` : ''}
+                            ${song.notes ? `<p class="mt-2 text-xs text-gray-500 truncate"><span class="font-medium">💬</span> ${song.notes}</p>` : ''}
                             ${copyButtonHtml}
                         `;
                         
@@ -596,53 +944,29 @@
                                 }
                                 
                                 updateActiveFilters();
+                                updateClearButtonVisibility();
                                 filterSongs();
                             });
                         });
                         
                         // Add click event for copy button
                         const copyBtn = songCard.querySelector('.copy-btn');
-copyBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    
-    const title = this.dataset.title;
-    const artist = this.dataset.artist;
-    const textToCopy = `${artist} - ${title}`.trim();
-    const tooltip = this.querySelector('.copy-tooltip');
-
-    // Try using Clipboard API
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            showTooltip(tooltip);
-        }).catch(() => {
-            fallbackCopyText(textToCopy, tooltip);
-        });
-    } else {
-        fallbackCopyText(textToCopy, tooltip);
-    }
-
-    function showTooltip(tooltipEl) {
-        tooltipEl.classList.add('show');
-        setTimeout(() => {
-            tooltipEl.classList.remove('show');
-        }, 2500);
-    }
-
-    function fallbackCopyText(text, tooltipEl) {
-        const tempInput = document.createElement('input');
-        tempInput.value = text;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        try {
-            document.execCommand('copy');
-            showTooltip(tooltipEl);
-        } catch (err) {
-            console.error('Fallback: Copy command failed', err);
-        }
-        document.body.removeChild(tempInput);
-    }
-});
-
+                        copyBtn.addEventListener('click', function(e) {
+                            e.stopPropagation(); // Prevent event bubbling
+                            
+                            const title = this.dataset.title;
+                            const artist = this.dataset.artist;
+                            const textToCopy = `${artist} - ${title}`.trim();
+                            
+                            // Copy to clipboard using our improved function
+                            copyToClipboard(textToCopy).then(() => {
+                                // Show toast notification
+                                showToast(`已複製: ${textToCopy}`);
+                            }).catch(err => {
+                                console.error('Could not copy text: ', err);
+                                alert('複製失敗，請手動複製: ' + textToCopy);
+                            });
+                        });
                         
                         songsContainer.appendChild(songCard);
                     });
@@ -650,13 +974,13 @@ copyBtn.addEventListener('click', function(e) {
             }
 
             function getLanguageColor(language) {
-                if (!language) return 'border-gray-500';
+                if (!language) return 'border-gray-300';
                 
                 // Create a consistent color based on the language string
                 const colors = [
-                    'border-pink-500', 'border-blue-500', 'border-yellow-500', 
-                    'border-green-500', 'border-purple-500', 'border-red-500',
-                    'border-indigo-500', 'border-orange-500', 'border-teal-500'
+                    'border-purple-400', 'border-blue-400', 'border-indigo-400', 
+                    'border-violet-400', 'border-fuchsia-400', 'border-pink-400',
+                    'border-rose-400', 'border-orange-400', 'border-amber-400'
                 ];
                 
                 // Simple hash function to get a consistent index
@@ -674,11 +998,11 @@ copyBtn.addEventListener('click', function(e) {
                 
                 // Create a consistent color class based on the language string
                 const classes = [
-                    'bg-pink-100 text-pink-800', 'bg-blue-100 text-blue-800', 
-                    'bg-yellow-100 text-yellow-800', 'bg-green-100 text-green-800',
-                    'bg-purple-100 text-purple-800', 'bg-red-100 text-red-800',
-                    'bg-indigo-100 text-indigo-800', 'bg-orange-100 text-orange-800',
-                    'bg-teal-100 text-teal-800'
+                    'bg-purple-100 text-purple-800', 'bg-blue-100 text-blue-800', 
+                    'bg-indigo-100 text-indigo-800', 'bg-violet-100 text-violet-800',
+                    'bg-fuchsia-100 text-fuchsia-800', 'bg-pink-100 text-pink-800',
+                    'bg-rose-100 text-rose-800', 'bg-orange-100 text-orange-800',
+                    'bg-amber-100 text-amber-800'
                 ];
                 
                 // Simple hash function to get a consistent index
@@ -708,31 +1032,36 @@ copyBtn.addEventListener('click', function(e) {
                     }
                 });
                 
-                // Create stats for top languages
+                // Create stats for top languages with cute emojis
                 Object.entries(languageCounts)
                     .sort((a, b) => b[1] - a[1])
                     .slice(0, 2)
-                    .forEach(([language, count]) => {
+                    .forEach(([language, count], index) => {
                         const statDiv = document.createElement('div');
                         const colorClass = getLanguageStatClass(language);
-                        statDiv.className = `${colorClass} rounded-lg p-4 text-center`;
+                        const emoji = index === 0 ? '🏆' : '🥈';
+                        statDiv.className = `stats-card ${colorClass} rounded-lg p-4 text-center border-2 border-${colorClass.split('-')[1]}-100`;
                         statDiv.innerHTML = `
                             <div class="text-3xl font-bold ${getLanguageStatTextClass(language)}">${count}</div>
-                            <div class="text-gray-600">${language} 歌曲</div>
+                            <div class="text-gray-600 flex items-center justify-center">
+                                <span class="cute-icon mr-1">${emoji}</span> ${language} 歌曲
+                            </div>
                         `;
                         statsContainer.appendChild(statDiv);
                     });
                 
-                // Create stats for top category
+                // Create stats for top category with cute emoji
                 Object.entries(categoryCounts)
                     .sort((a, b) => b[1] - a[1])
                     .slice(0, 1)
                     .forEach(([category, count]) => {
                         const statDiv = document.createElement('div');
-                        statDiv.className = 'bg-purple-50 rounded-lg p-4 text-center';
+                        statDiv.className = 'stats-card bg-purple-50 rounded-lg p-4 text-center border-2 border-purple-100';
                         statDiv.innerHTML = `
                             <div class="text-3xl font-bold text-purple-600">${count}</div>
-                            <div class="text-gray-600">最多: ${category}</div>
+                            <div class="text-gray-600 flex items-center justify-center">
+                                <span class="cute-icon mr-1">✨</span> 最多: ${category}
+                            </div>
                         `;
                         statsContainer.appendChild(statDiv);
                     });
@@ -743,9 +1072,9 @@ copyBtn.addEventListener('click', function(e) {
                 
                 // Simple hash function to get a consistent color
                 const classes = [
-                    'bg-pink-50', 'bg-blue-50', 'bg-yellow-50', 'bg-green-50',
-                    'bg-purple-50', 'bg-red-50', 'bg-indigo-50', 'bg-orange-50',
-                    'bg-teal-50'
+                    'bg-purple-50', 'bg-blue-50', 'bg-indigo-50', 'bg-violet-50',
+                    'bg-fuchsia-50', 'bg-pink-50', 'bg-rose-50', 'bg-orange-50',
+                    'bg-amber-50'
                 ];
                 
                 let hash = 0;
@@ -762,9 +1091,9 @@ copyBtn.addEventListener('click', function(e) {
                 
                 // Simple hash function to get a consistent color
                 const classes = [
-                    'text-pink-600', 'text-blue-600', 'text-yellow-600', 'text-green-600',
-                    'text-purple-600', 'text-red-600', 'text-indigo-600', 'text-orange-600',
-                    'text-teal-600'
+                    'text-purple-600', 'text-blue-600', 'text-indigo-600', 'text-violet-600',
+                    'text-fuchsia-600', 'text-pink-600', 'text-rose-600', 'text-orange-600',
+                    'text-amber-600'
                 ];
                 
                 let hash = 0;
@@ -777,53 +1106,5 @@ copyBtn.addEventListener('click', function(e) {
             }
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9314bf85e086b2fc',t:'MTc0NDgxNzY4MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-<script>
-// 全域事件委派：處理所有 .copy-btn 點擊事件，支援動態渲染的按鈕
-    document.addEventListener('click', function (e) {
-        const copyBtn = e.target.closest('.copy-btn');
-        if (!copyBtn) return;
-
-        e.stopPropagation();
-
-        const title = copyBtn.dataset.title;
-        const artist = copyBtn.dataset.artist;
-        const textToCopy = `${artist} - ${title}`.trim();
-        const tooltip = copyBtn.querySelector('.copy-tooltip');
-
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                showTooltip(tooltip);
-            }).catch(() => {
-                fallbackCopyText(textToCopy, tooltip);
-            });
-        } else {
-            fallbackCopyText(textToCopy, tooltip);
-        }
-
-        function showTooltip(tooltipEl) {
-            if (!tooltipEl) return;
-            tooltipEl.classList.add('show');
-            setTimeout(() => {
-                tooltipEl.classList.remove('show');
-            }, 2500);
-        }
-
-        function fallbackCopyText(text, tooltipEl) {
-            const tempInput = document.createElement('input');
-            tempInput.value = text;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            try {
-                document.execCommand('copy');
-                showTooltip(tooltipEl);
-            } catch (err) {
-                console.error('Fallback: Copy command failed', err);
-            }
-            document.body.removeChild(tempInput);
-        }
-    });
-</script>
-
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9314c8eec664b2f8',t:'MTc0NDgxODA2Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
