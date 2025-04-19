@@ -1,0 +1,1276 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歌曲搜尋平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #fce4ec 0%, #e3f2fd 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+        .song-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            border-width: 2px;
+        }
+        .song-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .song-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .song-card:hover::before {
+            opacity: 1;
+        }
+        .search-input {
+            transition: all 0.3s ease;
+            border-radius: 20px;
+            border-width: 2px;
+        }
+        .search-input:focus {
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+            transform: translateY(-1px);
+        }
+        .filter-btn.active {
+            background-color: #8b5cf6;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
+        }
+        .category-btn {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        .category-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #8b5cf6;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+        .category-btn:hover::after {
+            transform: scaleX(1);
+        }
+        .category-btn.active {
+            background-color: #8b5cf6;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);
+        }
+        .category-btn.active::after {
+            transform: scaleX(0);
+        }
+        .loader {
+            border-top-color: #8b5cf6;
+            animation: spinner 0.6s linear infinite;
+        }
+        @keyframes spinner {
+            to {transform: rotate(360deg);}
+        }
+        .language-tag {
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+        }
+        .language-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .category-tag {
+            display: inline-block;
+            margin-right: 0.25rem;
+            margin-bottom: 0.25rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+        }
+        .category-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .active-filters {
+            transition: all 0.3s ease;
+            border-radius: 16px;
+            min-height: 40px; /* Ensure minimum height even when empty */
+            display: flex;
+            align-items: center;
+        }
+        .copy-btn {
+            transition: all 0.3s ease;
+            width: 40px;  /* Increased size */
+            height: 40px; /* Increased size */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer; /* Add hand cursor */
+        }
+        .copy-btn svg {
+            width: 20px;  /* Increased icon size */
+            height: 20px; /* Increased icon size */
+        }
+        .song-card:hover .copy-btn {
+            animation: bounce 0.5s ease;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .copy-tooltip {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            background-color: #8b5cf6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .copy-tooltip.show {
+            opacity: 1;
+            animation: fadeInOut 2s ease forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(5px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .copy-tooltip:after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            right: 10px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #8b5cf6 transparent transparent transparent;
+        }
+        .category-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 10px;
+            background-color: rgba(139, 92, 246, 0.2);
+            color: #6d28d9;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 6px;
+            transition: all 0.3s ease;
+        }
+        .category-btn.active .category-count {
+            background-color: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        .filter-tag {
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 0.5rem;
+            margin-bottom: 0.25rem;
+            transition: all 0.3s ease;
+        }
+        .filter-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .clear-btn {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            cursor: pointer; /* Add hand cursor */
+            display: inline-flex; /* Changed to inline-flex */
+            align-items: center;
+            margin-left: 8px; /* Add margin to separate from filters */
+            opacity: 0.5; /* Default state is semi-transparent */
+        }
+        .clear-btn.show {
+            opacity: 1;
+        }
+        .stats-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+        }
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        .stats-card:hover::before {
+            opacity: 1;
+        }
+        .pulse-heart {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .main-container {
+            animation: fadeInUp 0.8s ease-out;
+            max-width: 1200px;
+            width: 100%;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .header-text {
+            background: linear-gradient(90deg, #8b5cf6, #6d28d9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 8s ease infinite;
+            background-size: 200% 200%;
+            text-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+            text-align: center; /* Ensure text is centered */
+            margin: 0 auto; /* Center the element itself */
+            width: 100%; /* Take full width */
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        /* Hidden textarea for clipboard operations */
+        #clipboard-textarea {
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+        }
+        /* Toast notification */
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #8b5cf6;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        /* Cute elements */
+        .cute-icon {
+            display: inline-block;
+            animation: wiggle 2s ease-in-out infinite;
+        }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0); }
+            25% { transform: rotate(10deg); }
+            75% { transform: rotate(-10deg); }
+        }
+        .search-container {
+            position: relative;
+        }
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8b5cf6;
+            transition: all 0.3s ease;
+        }
+        .search-input:focus + .search-icon {
+            transform: translateY(-50%) scale(1.2);
+        }
+        .card-container {
+            margin-top: -8px;
+        }
+        /* Center the header content */
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        /* Copy button hover effect - Changed color */
+        .copy-btn:hover {
+            background-color: #10b981 !important; /* Green color on hover */
+            color: white !important;
+            transform: scale(1.1);
+        }
+        /* Copy button active effect */
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+        /* Add cursor pointer to all interactive elements */
+        button, .filter-btn, .category-btn, .filter-tag, .category-tag {
+            cursor: pointer;
+        }
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #8b5cf6;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .back-to-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(139, 92, 246, 0.4);
+        }
+        /* Copy animation */
+        .copy-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(139, 92, 246, 0.1);
+            border-radius: 16px;
+            z-index: 2;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .copy-animation.show {
+            animation: copyFlash 0.8s ease-out;
+        }
+        @keyframes copyFlash {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        /* Copy success text */
+        .copy-success {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(139, 92, 246, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            z-index: 3;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .copy-success.show {
+            animation: fadeInOutSuccess 1s ease-out;
+        }
+        @keyframes fadeInOutSuccess {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            30% { transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        /* Filters container */
+        .filters-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        /* Empty state for active filters */
+        .empty-state {
+            color: #a1a1aa;
+            font-style: italic;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8 main-container">
+        <header class="text-center mb-8">
+            <div class="header-content">
+                <h1 class="text-4xl font-bold mb-2 header-text">我的歌曲庫</h1>
+                <p class="text-gray-600 text-lg text-center">找到你喜歡的歌了嗎~<span class="pulse-heart text-purple-500">💜</span></p>
+            </div>
+        </header>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 backdrop-blur-md bg-opacity-90 border-2 border-purple-100">
+            <!-- Search bar - moved to the top -->
+            <div class="mb-6 search-container">
+                <input 
+                    type="text" 
+                    id="search" 
+                    placeholder="搜尋歌曲、歌手或語言..." 
+                    class="search-input w-full px-5 py-3 border-purple-200 focus:border-purple-400 focus:outline-none text-gray-700"
+                >
+                <div class="search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Category filters -->
+            <div class="mb-3">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-semibold text-gray-700 flex items-center">
+                        <span class="cute-icon mr-1">🏷️</span> 分類
+                    </h3>
+                </div>
+                <div class="flex gap-2 flex-wrap" id="category-filters">
+                    <!-- Category filters will be dynamically added here -->
+                </div>
+                
+                <!-- Active filters display with clear button to the right -->
+                <div class="mt-3">
+                    <!-- Filters container to hold both active filters and clear button -->
+                    <div class="filters-container">
+                        <!-- Active filters - now always visible -->
+                        <div id="active-filters" class="active-filters px-3 py-2 bg-purple-50 rounded-lg flex-grow">
+                            <div class="flex flex-wrap gap-1" id="active-filters-list">
+                                <!-- Empty state message -->
+                                <span class="empty-state" id="empty-filters-message">尚未選擇分類</span>
+                                <!-- Active filters will be shown here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Clear button - now on the right -->
+                        <button id="clear-categories" class="clear-btn text-sm text-purple-600 hover:text-purple-800 font-medium px-3 py-1 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors ml-2">
+                            <span class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                清除所有
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row md:items-center gap-4 mb-3 justify-center">
+                <div class="flex gap-2 flex-wrap justify-center" id="language-filters">
+                    <!-- Language filters will be dynamically added here -->
+                </div>
+            </div>
+
+            <div class="text-gray-600 mb-3 flex items-center justify-center">
+                <span class="cute-icon mr-1">🎧</span>
+                <span id="result-count" class="font-medium">0</span> 首歌曲
+            </div>
+
+            <div id="loading" class="flex justify-center py-10">
+                <div class="loader h-10 w-10 rounded-full border-4 border-gray-200"></div>
+            </div>
+
+            <div id="songs-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden card-container">
+                <!-- Songs will be populated here -->
+            </div>
+
+            <div id="no-results" class="text-center py-10 hidden">
+                <div class="cute-icon text-4xl mb-2">😢</div>
+                <p class="text-gray-600 text-lg">沒有找到符合的歌曲</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6 backdrop-blur-md bg-opacity-90 border-2 border-purple-100">
+            <h2 class="text-2xl font-bold mb-4 header-text flex items-center justify-center">
+                <span class="cute-icon mr-2">📊</span> 統計資訊
+            </h2>
+            <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="stats-card bg-purple-50 rounded-lg p-4 text-center border-2 border-purple-100">
+                    <div class="text-3xl font-bold text-purple-600" id="total-count">0</div>
+                    <div class="text-gray-600">總歌曲數</div>
+                </div>
+                <!-- Additional stats will be added dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to top button -->
+    <div class="back-to-top" id="back-to-top">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+    </div>
+
+    <!-- Hidden textarea for clipboard operations -->
+    <textarea id="clipboard-textarea" aria-hidden="true"></textarea>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast-notification">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span id="toast-message">已複製到剪貼簿！</span>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const songsContainer = document.getElementById('songs-container');
+            const searchInput = document.getElementById('search');
+            const resultCount = document.getElementById('result-count');
+            const noResults = document.getElementById('no-results');
+            const loading = document.getElementById('loading');
+            const languageFilters = document.getElementById('language-filters');
+            const categoryFilters = document.getElementById('category-filters');
+            const activeFilters = document.getElementById('active-filters');
+            const activeFiltersList = document.getElementById('active-filters-list');
+            const clearCategoriesBtn = document.getElementById('clear-categories');
+            const statsContainer = document.getElementById('stats-container');
+            const totalCountEl = document.getElementById('total-count');
+            const clipboardTextarea = document.getElementById('clipboard-textarea');
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            const backToTopBtn = document.getElementById('back-to-top');
+            const emptyFiltersMessage = document.getElementById('empty-filters-message');
+            
+            let allSongs = [];
+            let currentLanguageFilter = 'all';
+            let selectedCategories = new Set(); // Store selected categories
+            let languages = new Set();
+            let categories = []; // Array to preserve order from spreadsheet
+            let categoryCounts = {}; // Store category counts
+            let categoryItems = []; // Store the original category items from column F
+
+            // Google Sheet ID from the provided URL
+            const sheetId = '1z-kl4dUioRrhJaq82O283991VPtg2PfXqx4eN5fQ9-8';
+            
+            // Use the opensheet.elk.sh API to fetch the data
+            fetchSheetData();
+
+            // Back to top button functionality
+            window.addEventListener('scroll', function() {
+                if (window.pageYOffset > 300) {
+                    backToTopBtn.classList.add('show');
+                } else {
+                    backToTopBtn.classList.remove('show');
+                }
+            });
+
+            backToTopBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+
+            function fetchSheetData() {
+                const apiUrl = `https://opensheet.elk.sh/${sheetId}/sheet1`;
+                
+                fetch(apiUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        processSheetData(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching sheet data:', error);
+                        showFetchError();
+                    });
+            }
+
+            function processSheetData(data) {
+                try {
+                    // First, extract category items from column F (分類項目)
+                    data.forEach(row => {
+                        const categoryItem = row.分類項目 || '';
+                        if (categoryItem && !categoryItems.includes(categoryItem)) {
+                            categoryItems.push(categoryItem);
+                        }
+                    });
+
+                    // Map the data to our songs array
+                    allSongs = data.map((row, index) => {
+                        const song = {
+                            id: index + 1,
+                            title: row.歌名 || row.title || row.Song || '',
+                            artist: row.歌手 || row.artist || row.Artist || '',
+                            language: row.語言 || row.language || row.Language || '',
+                            category: row.分類 || row.category || row.Category || '',
+                            notes: row.備註 || row.notes || row.Notes || ''
+                        };
+                        
+                        // Add language to our set of languages
+                        if (song.language) {
+                            languages.add(song.language);
+                        }
+                        
+                        // Process categories (split by comma)
+                        if (song.category) {
+                            const categoryList = song.category.split(',').map(cat => cat.trim());
+                            song.categories = categoryList; // Store as array for filtering
+                            
+                            // Add each category to our categories array if it's not already there
+                            categoryList.forEach(cat => {
+                                if (cat) {
+                                    if (!categories.includes(cat)) {
+                                        categories.push(cat);
+                                    }
+                                    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+                                }
+                            });
+                        } else {
+                            song.categories = [];
+                        }
+                        
+                        return song;
+                    });
+                    
+                    // If we have category items from column F, use those instead
+                    if (categoryItems.length > 0) {
+                        categories = categoryItems;
+                    }
+                    
+                    // Create language filters
+                    createLanguageFilters();
+                    
+                    // Create category filters
+                    createCategoryFilters();
+                    
+                    // Update statistics
+                    updateStats();
+                    
+                    // Initial render
+                    renderSongs(allSongs);
+                    
+                    // Update clear button visibility
+                    updateClearButtonVisibility();
+                } catch (error) {
+                    console.error('Error processing sheet data:', error);
+                    showFetchError();
+                } finally {
+                    loading.classList.add('hidden');
+                    songsContainer.classList.remove('hidden');
+                }
+            }
+
+            function showFetchError() {
+                loading.classList.add('hidden');
+                songsContainer.classList.add('hidden');
+                noResults.classList.remove('hidden');
+                noResults.innerHTML = `
+                    <div class="cute-icon text-5xl mb-4">🙈</div>
+                    <p class="text-gray-600 text-lg">無法獲取歌曲數據</p>
+                    <p class="text-gray-500 mt-2">請確保Google Sheet格式正確，並且可以公開訪問</p>
+                    <button id="retry-btn" class="mt-4 px-6 py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors shadow-md">重試</button>
+                `;
+                
+                // Add retry functionality
+                document.getElementById('retry-btn').addEventListener('click', fetchSheetData);
+            }
+
+            function createLanguageFilters() {
+                // Clear existing language filters
+                languageFilters.innerHTML = '';
+                
+                // Add a filter button for each language
+                Array.from(languages).sort().forEach(language => {
+                    const button = document.createElement('button');
+                    button.className = 'filter-btn px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-all border-2 border-transparent hover:border-purple-200';
+                    button.dataset.filter = language;
+                    button.textContent = language;
+                    
+                    button.addEventListener('click', function() {
+                        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                        this.classList.add('active');
+                        currentLanguageFilter = this.dataset.filter;
+                        filterSongs();
+                    });
+                    
+                    languageFilters.appendChild(button);
+                });
+            }
+
+            function createCategoryFilters() {
+                // Clear existing category filters
+                categoryFilters.innerHTML = '';
+                
+                // Use the categories array which preserves the original order from the sheet
+                categories.forEach(category => {
+                    const button = document.createElement('button');
+                    button.className = 'category-btn px-4 py-2 rounded-full bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium flex items-center transition-all border-2 border-transparent hover:border-purple-300';
+                    button.dataset.category = category;
+                    
+                    // Add category name and count
+                    const count = categoryCounts[category] || 0;
+                    button.innerHTML = `
+                        <span>${category}</span>
+                        <span class="category-count">${count}</span>
+                    `;
+                    
+                    button.addEventListener('click', function() {
+                        // Toggle active state
+                        this.classList.toggle('active');
+                        
+                        // Update selected categories set
+                        const category = this.dataset.category;
+                        if (selectedCategories.has(category)) {
+                            selectedCategories.delete(category);
+                        } else {
+                            selectedCategories.add(category);
+                        }
+                        
+                        // Update active filters display
+                        updateActiveFilters();
+                        
+                        // Update clear button visibility
+                        updateClearButtonVisibility();
+                        
+                        // Filter songs
+                        filterSongs();
+                    });
+                    
+                    categoryFilters.appendChild(button);
+                });
+                
+                // Clear categories button
+                clearCategoriesBtn.addEventListener('click', function() {
+                    selectedCategories.clear();
+                    document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+                    updateActiveFilters();
+                    updateClearButtonVisibility();
+                    filterSongs();
+                });
+            }
+
+            function updateActiveFilters() {
+                activeFiltersList.innerHTML = '';
+                
+                if (selectedCategories.size === 0) {
+                    // Show empty state message
+                    activeFiltersList.appendChild(emptyFiltersMessage);
+                    return;
+                }
+                
+                // Hide empty state message
+                if (emptyFiltersMessage.parentNode === activeFiltersList) {
+                    activeFiltersList.removeChild(emptyFiltersMessage);
+                }
+                
+                // Add a chip for each selected category in the original order
+                categories.forEach(category => {
+                    if (selectedCategories.has(category)) {
+                        const chip = document.createElement('div');
+                        chip.className = 'filter-tag bg-purple-200 text-purple-800';
+                        chip.dataset.category = category;
+                        chip.innerHTML = `
+                            <span>${category}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        `;
+                        
+                        // Add click functionality to the entire tag
+                        chip.addEventListener('click', function() {
+                            const category = this.dataset.category;
+                            selectedCategories.delete(category);
+                            
+                            // Update category button state
+                            const categoryBtn = document.querySelector(`.category-btn[data-category="${category}"]`);
+                            if (categoryBtn) {
+                                categoryBtn.classList.remove('active');
+                            }
+                            
+                            updateActiveFilters();
+                            updateClearButtonVisibility();
+                            filterSongs();
+                        });
+                        
+                        activeFiltersList.appendChild(chip);
+                    }
+                });
+            }
+
+            function updateClearButtonVisibility() {
+                if (selectedCategories.size > 0) {
+                    clearCategoriesBtn.classList.add('show');
+                } else {
+                    clearCategoriesBtn.classList.remove('show');
+                }
+            }
+
+            // Search functionality
+            searchInput.addEventListener('input', function() {
+                filterSongs();
+            });
+
+            function filterSongs() {
+                const searchTerm = searchInput.value.toLowerCase();
+                let filteredSongs = allSongs;
+                
+                // Apply language filter
+                if (currentLanguageFilter !== 'all') {
+                    filteredSongs = filteredSongs.filter(song => song.language === currentLanguageFilter);
+                }
+                
+                // Apply category filters (intersection - song must have ALL selected categories)
+                if (selectedCategories.size > 0) {
+                    filteredSongs = filteredSongs.filter(song => {
+                        // Check if song has all selected categories
+                        for (const category of selectedCategories) {
+                            if (!song.categories || !song.categories.includes(category)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                }
+                
+                // Apply search filter
+                if (searchTerm) {
+                    filteredSongs = filteredSongs.filter(song => 
+                        (song.title && song.title.toLowerCase().includes(searchTerm)) || 
+                        (song.artist && song.artist.toLowerCase().includes(searchTerm)) ||
+                        (song.language && song.language.toLowerCase().includes(searchTerm)) ||
+                        (song.category && song.category.toLowerCase().includes(searchTerm)) ||
+                        (song.notes && song.notes.toLowerCase().includes(searchTerm))
+                    );
+                }
+                
+                // Update category counts based on filtered songs
+                updateCategoryCounts(filteredSongs);
+                
+                renderSongs(filteredSongs);
+            }
+
+            function updateCategoryCounts(filteredSongs) {
+                // Reset counts
+                const filteredCategoryCounts = {};
+                
+                // Count categories in filtered songs
+                filteredSongs.forEach(song => {
+                    if (song.categories && song.categories.length > 0) {
+                        song.categories.forEach(cat => {
+                            if (cat) {
+                                filteredCategoryCounts[cat] = (filteredCategoryCounts[cat] || 0) + 1;
+                            }
+                        });
+                    }
+                });
+                
+                // Update category buttons with new counts
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    const category = btn.dataset.category;
+                    const countElement = btn.querySelector('.category-count');
+                    if (countElement) {
+                        countElement.textContent = filteredCategoryCounts[category] || 0;
+                    }
+                });
+            }
+
+            // Improved copy to clipboard function that works in all browsers
+            function copyToClipboard(text, songCard) {
+                return new Promise((resolve, reject) => {
+                    // First try the modern clipboard API
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(text)
+                            .then(() => {
+                                showCopyAnimation(songCard);
+                                resolve();
+                            })
+                            .catch(() => {
+                                // Fallback to the textarea method
+                                clipboardFallback(text, songCard, resolve, reject);
+                            });
+                    } else {
+                        // Use the textarea method for non-secure contexts or older browsers
+                        clipboardFallback(text, songCard, resolve, reject);
+                    }
+                });
+            }
+
+            function clipboardFallback(text, songCard, resolve, reject) {
+                try {
+                    // Set the textarea value to the text we want to copy
+                    clipboardTextarea.value = text;
+                    
+                    // Make the textarea visible but not intrusive
+                    clipboardTextarea.style.position = 'fixed';
+                    clipboardTextarea.style.top = '0';
+                    clipboardTextarea.style.left = '0';
+                    clipboardTextarea.style.width = '2em';
+                    clipboardTextarea.style.height = '2em';
+                    clipboardTextarea.style.opacity = '0';
+                    clipboardTextarea.style.zIndex = '-1';
+                    
+                    // Show the textarea
+                    clipboardTextarea.style.display = 'block';
+                    
+                    // Select the text
+                    clipboardTextarea.select();
+                    clipboardTextarea.setSelectionRange(0, 99999); // For mobile devices
+                    
+                    // Execute copy command
+                    const successful = document.execCommand('copy');
+                    
+                    // Hide the textarea again
+                    clipboardTextarea.style.display = 'none';
+                    
+                    if (successful) {
+                        showCopyAnimation(songCard);
+                        resolve();
+                    } else {
+                        reject(new Error('Copy command was unsuccessful'));
+                    }
+                } catch (err) {
+                    reject(err);
+                }
+            }
+
+            // Show copy animation on the song card
+            function showCopyAnimation(songCard) {
+                // Create animation overlay
+                const copyAnimation = document.createElement('div');
+                copyAnimation.className = 'copy-animation';
+                songCard.appendChild(copyAnimation);
+                
+                // Create success text
+                const copySuccess = document.createElement('div');
+                copySuccess.className = 'copy-success';
+                copySuccess.textContent = '已複製';
+                songCard.appendChild(copySuccess);
+                
+                // Trigger animations
+                setTimeout(() => {
+                    copyAnimation.classList.add('show');
+                    copySuccess.classList.add('show');
+                }, 10);
+                
+                // Remove elements after animation completes
+                setTimeout(() => {
+                    copyAnimation.remove();
+                    copySuccess.remove();
+                }, 1000);
+            }
+
+            // Show toast notification
+            function showToast(message) {
+                toastMessage.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+
+            function renderSongs(songs) {
+                songsContainer.innerHTML = '';
+                resultCount.textContent = songs.length;
+                
+                if (songs.length === 0) {
+                    noResults.classList.remove('hidden');
+                    songsContainer.classList.add('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                    songsContainer.classList.remove('hidden');
+                    
+                    songs.forEach((song, index) => {
+                        const songCard = document.createElement('div');
+                        songCard.className = 'song-card bg-white shadow-md p-4 border-2 hover:border-purple-400 relative';
+                        songCard.style.animationDelay = `${index * 0.05}s`;
+                        
+                        // Set border color based on language
+                        const borderColor = getLanguageColor(song.language);
+                        songCard.classList.add(borderColor);
+                        
+                        // Create category tags HTML - more compact layout
+                        let categoryTagsHtml = '';
+                        if (song.categories && song.categories.length > 0) {
+                            categoryTagsHtml = '<div class="mt-2 flex flex-wrap">';
+                            
+                            // Display categories in the original order from the sheet
+                            categories.forEach(cat => {
+                                if (song.categories.includes(cat)) {
+                                    // Highlight selected categories
+                                    const isSelected = selectedCategories.has(cat);
+                                    const tagClass = isSelected ? 
+                                        'bg-purple-200 text-purple-800 font-medium' : 
+                                        'bg-purple-100 text-purple-800';
+                                    
+                                    categoryTagsHtml += `
+                                        <span class="category-tag px-2 py-0.5 text-xs rounded-full ${tagClass} mr-1 mb-1" data-category="${cat}">${cat}</span>
+                                    `;
+                                }
+                            });
+                            
+                            categoryTagsHtml += '</div>';
+                        }
+                        
+                        // Create larger copy button - always visible with new color (green)
+                        const copyButtonHtml = `
+                            <div class="absolute top-3 right-3">
+                                <button class="copy-btn p-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-full focus:outline-none shadow-md" data-title="${song.title || ''}" data-artist="${song.artist || ''}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                                    </svg>
+                                </button>
+                            </div>
+                        `;
+                        
+                        // More cute layout with emojis and better spacing
+                        songCard.innerHTML = `
+                            <h3 class="text-base font-bold text-gray-800 pr-12 truncate">
+                                <span class="cute-icon inline-block mr-1">🎵</span> ${song.title || ''}
+                            </h3>
+                            <div class="flex justify-between items-center mt-1">
+                                <p class="text-sm text-gray-600 truncate max-w-[70%]">
+                                    <span class="cute-icon inline-block mr-1">🎤</span> ${song.artist || ''}
+                                </p>
+                                ${song.language ? `<span class="language-tag px-2 py-0.5 text-xs rounded-full ${getLanguageClass(song.language)}">${song.language}</span>` : ''}
+                            </div>
+                            ${categoryTagsHtml}
+                            ${song.notes ? `<p class="mt-2 text-xs text-gray-500 truncate"><span class="font-medium">💬</span> ${song.notes}</p>` : ''}
+                            ${copyButtonHtml}
+                        `;
+                        
+                        // Add click event for category tags
+                        const categoryTags = songCard.querySelectorAll('.category-tag');
+                        categoryTags.forEach(tag => {
+                            tag.addEventListener('click', function(e) {
+                                e.stopPropagation(); // Prevent event bubbling
+                                const category = this.dataset.category;
+                                
+                                // Toggle category selection
+                                if (selectedCategories.has(category)) {
+                                    selectedCategories.delete(category);
+                                } else {
+                                    selectedCategories.add(category);
+                                }
+                                
+                                // Update category button state
+                                const categoryBtn = document.querySelector(`.category-btn[data-category="${category}"]`);
+                                if (categoryBtn) {
+                                    categoryBtn.classList.toggle('active');
+                                }
+                                
+                                updateActiveFilters();
+                                updateClearButtonVisibility();
+                                filterSongs();
+                            });
+                        });
+                        
+                        // Add click event for copy button
+                        const copyBtn = songCard.querySelector('.copy-btn');
+                        copyBtn.addEventListener('click', function(e) {
+                            e.stopPropagation(); // Prevent event bubbling
+                            
+                            const title = this.dataset.title;
+                            const artist = this.dataset.artist;
+                            const textToCopy = `${artist} - ${title}`.trim();
+                            
+                            // Copy to clipboard using our improved function
+                            copyToClipboard(textToCopy, songCard).then(() => {
+                                // Show toast notification
+                                showToast(`已複製: ${textToCopy}`);
+                            }).catch(err => {
+                                console.error('Could not copy text: ', err);
+                                alert('複製失敗，請手動複製: ' + textToCopy);
+                            });
+                        });
+                        
+                        songsContainer.appendChild(songCard);
+                    });
+                }
+            }
+
+            function getLanguageColor(language) {
+                if (!language) return 'border-gray-300';
+                
+                // Create a consistent color based on the language string
+                const colors = [
+                    'border-purple-400', 'border-blue-400', 'border-indigo-400', 
+                    'border-violet-400', 'border-fuchsia-400', 'border-pink-400',
+                    'border-rose-400', 'border-orange-400', 'border-amber-400'
+                ];
+                
+                // Simple hash function to get a consistent index
+                let hash = 0;
+                for (let i = 0; i < language.length; i++) {
+                    hash = language.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                
+                const index = Math.abs(hash) % colors.length;
+                return colors[index];
+            }
+
+            function getLanguageClass(language) {
+                if (!language) return 'bg-gray-100 text-gray-800';
+                
+                // Create a consistent color class based on the language string
+                const classes = [
+                    'bg-purple-100 text-purple-800', 'bg-blue-100 text-blue-800', 
+                    'bg-indigo-100 text-indigo-800', 'bg-violet-100 text-violet-800',
+                    'bg-fuchsia-100 text-fuchsia-800', 'bg-pink-100 text-pink-800',
+                    'bg-rose-100 text-rose-800', 'bg-orange-100 text-orange-800',
+                    'bg-amber-100 text-amber-800'
+                ];
+                
+                // Simple hash function to get a consistent index
+                let hash = 0;
+                for (let i = 0; i < language.length; i++) {
+                    hash = language.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                
+                const index = Math.abs(hash) % classes.length;
+                return classes[index];
+            }
+
+            function updateStats() {
+                // Clear existing stats (except total)
+                const totalStat = statsContainer.querySelector('div');
+                statsContainer.innerHTML = '';
+                statsContainer.appendChild(totalStat);
+                
+                // Update total count
+                totalCountEl.textContent = allSongs.length;
+                
+                // Count songs by language
+                const languageCounts = {};
+                allSongs.forEach(song => {
+                    if (song.language) {
+                        languageCounts[song.language] = (languageCounts[song.language] || 0) + 1;
+                    }
+                });
+                
+                // Create stats for top languages with cute emojis
+                Object.entries(languageCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 2)
+                    .forEach(([language, count], index) => {
+                        const statDiv = document.createElement('div');
+                        const colorClass = getLanguageStatClass(language);
+                        const emoji = index === 0 ? '🏆' : '🥈';
+                        statDiv.className = `stats-card ${colorClass} rounded-lg p-4 text-center border-2 border-${colorClass.split('-')[1]}-100`;
+                        statDiv.innerHTML = `
+                            <div class="text-3xl font-bold ${getLanguageStatTextClass(language)}">${count}</div>
+                            <div class="text-gray-600 flex items-center justify-center">
+                                <span class="cute-icon mr-1">${emoji}</span> ${language} 歌曲
+                            </div>
+                        `;
+                        statsContainer.appendChild(statDiv);
+                    });
+                
+                // Create stats for first category with cute emoji
+                if (categories.length > 0) {
+                    const firstCategory = categories[0];
+                    const count = categoryCounts[firstCategory] || 0;
+                    
+                    const statDiv = document.createElement('div');
+                    statDiv.className = 'stats-card bg-purple-50 rounded-lg p-4 text-center border-2 border-purple-100';
+                    statDiv.innerHTML = `
+                        <div class="text-3xl font-bold text-purple-600">${count}</div>
+                        <div class="text-gray-600 flex items-center justify-center">
+                            <span class="cute-icon mr-1">✨</span> 首項: ${firstCategory}
+                        </div>
+                    `;
+                    statsContainer.appendChild(statDiv);
+                }
+            }
+
+            function getLanguageStatClass(language) {
+                if (!language) return 'bg-gray-50';
+                
+                // Simple hash function to get a consistent color
+                const classes = [
+                    'bg-purple-50', 'bg-blue-50', 'bg-indigo-50', 'bg-violet-50',
+                    'bg-fuchsia-50', 'bg-pink-50', 'bg-rose-50', 'bg-orange-50',
+                    'bg-amber-50'
+                ];
+                
+                let hash = 0;
+                for (let i = 0; i < language.length; i++) {
+                    hash = language.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                
+                const index = Math.abs(hash) % classes.length;
+                return classes[index];
+            }
+
+            function getLanguageStatTextClass(language) {
+                if (!language) return 'text-gray-600';
+                
+                // Simple hash function to get a consistent color
+                const classes = [
+                    'text-purple-600', 'text-blue-600', 'text-indigo-600', 'text-violet-600',
+                    'text-fuchsia-600', 'text-pink-600', 'text-rose-600', 'text-orange-600',
+                    'text-amber-600'
+                ];
+                
+                let hash = 0;
+                for (let i = 0; i < language.length; i++) {
+                    hash = language.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                
+                const index = Math.abs(hash) % classes.length;
+                return classes[index];
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'932aedc0638d3325',t:'MTc0NTA1MDI2MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
